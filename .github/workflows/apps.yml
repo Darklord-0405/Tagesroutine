@@ -44,9 +44,33 @@ jobs:
           name: apk
           path: android/app/build/outputs/apk/release/Tagesroutine-${{ needs.version.outputs.version }}.apk
 
+  release:
+    needs: [version, apk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: HTML-Datei beilegen
+        run: cp web/index.html "out/Tagesroutine-${{ needs.version.outputs.version }}.html"
+      - name: Release mit APK und IPA veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Tagesroutine ${{ needs.version.outputs.version }}
+          files: |
+            out/Tagesroutine-${{ needs.version.outputs.version }}.apk
+            out/Tagesroutine-${{ needs.version.outputs.version }}.html
+          make_latest: true
+
   ipa:
-    needs: version
+    # Mac-Server sind bei GitHub oft knapp. Die IPA kommt deshalb erst nach
+    # dem Release dazu, damit APK und HTML nicht auf sie warten müssen.
+    needs: [version, release]
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - name: XcodeGen installieren
@@ -69,29 +93,8 @@ jobs:
           mkdir -p Payload
           cp -R build/Release-iphoneos/Tagesroutine.app Payload/
           zip -qr "Tagesroutine-${{ needs.version.outputs.version }}.ipa" Payload
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ipa
-          path: ios/Tagesroutine-${{ needs.version.outputs.version }}.ipa
-
-  release:
-    needs: [version, apk, ipa]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
-        with:
-          path: out
-          merge-multiple: true
-      - name: HTML-Datei beilegen
-        run: cp web/index.html "out/Tagesroutine-${{ needs.version.outputs.version }}.html"
-      - name: Release mit APK und IPA veröffentlichen
+      - name: IPA zum Release hinzufügen
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
-          name: Tagesroutine ${{ needs.version.outputs.version }}
-          files: |
-            out/Tagesroutine-${{ needs.version.outputs.version }}.apk
-            out/Tagesroutine-${{ needs.version.outputs.version }}.ipa
-            out/Tagesroutine-${{ needs.version.outputs.version }}.html
-          make_latest: true
+          files: ios/Tagesroutine-${{ needs.version.outputs.version }}.ipa
