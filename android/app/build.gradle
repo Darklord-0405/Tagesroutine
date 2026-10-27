@@ -1,0 +1,56 @@
+plugins {
+    id "com.android.application"
+}
+
+// Einzige Versionsquelle: APP_VERSION in web/index.html
+def webIndex = file("../../web/index.html")
+def appVersion = (webIndex.text =~ /APP_VERSION = "([^"]+)"/)[0][1]
+def parts = appVersion.tokenize(".").collect { it as int }
+def appVersionCode = parts[0] * 10000 + parts[1] * 100 + (parts.size() > 2 ? parts[2] : 0)
+
+android {
+    namespace "de.benediktdiel.tagesroutine"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "de.benediktdiel.tagesroutine"
+        minSdk 24
+        targetSdk 34
+        versionCode appVersionCode
+        versionName appVersion
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "tagesroutine"
+            keyAlias "tagesroutine"
+            keyPassword "tagesroutine"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    sourceSets {
+        main {
+            // Die Web-App wird 1:1 als App-Inhalt eingebunden
+            assets.srcDirs = ["../../web"]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "Tagesroutine-${appVersion}.apk"
+        }
+    }
+}

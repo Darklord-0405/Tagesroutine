@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+<title>Tagesroutine</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Routine">
+<meta name="theme-color" content="#0f766e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: wie der Tagesplaner – Hero mit Fortschrittsring, Liste nach Tageszeit, rechts Verwaltung */
+:root{--bg:#f1f6f5;--card:#fff;--ink:#14231f;--mute:#5d706b;--line:#d8e5e2;--acc:#0f8a7e;--soft:#dcf1ee;--onacc:#fff;--warn:#c2410c;--heroA:#0f766e;--heroB:#2a9d8f;--shadow:rgba(10,60,55,.08);
+  --font:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1514;--card:#16201f;--ink:#e6f2ef;--mute:#93a8a3;--line:#24322f;--acc:#4fd1c0;--soft:#173a36;--onacc:#0d1514;--warn:#fb923c;--heroA:#12756c;--heroB:#0b4f49;--shadow:rgba(0,0,0,.4);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1514;--card:#16201f;--ink:#e6f2ef;--mute:#93a8a3;--line:#24322f;--acc:#4fd1c0;--soft:#173a36;--onacc:#0d1514;--warn:#fb923c;--heroA:#12756c;--heroB:#0b4f49;--shadow:rgba(0,0,0,.4);color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 18px/1.45 var(--font)}
+main{max-width:680px;margin:0 auto;padding-block:22px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+h1.page{font-size:44px;line-height:1;margin:0 0 6px;font-weight:700;letter-spacing:-.03em}
+.sub{color:var(--mute);margin:0 0 20px;font-size:18px}
+.hero{background:linear-gradient(135deg,var(--heroA),var(--heroB));color:#fff;border-radius:30px;padding:24px;margin-bottom:16px;box-shadow:0 10px 28px rgba(15,118,110,.3)}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hchip{border:0;border-radius:999px;padding:9px 16px;font-size:17px;font-weight:600;background:rgba(255,255,255,.2);color:#fff;cursor:pointer}
+.hchip.on{background:#fff;color:var(--heroA)}
+.arrows{display:flex;gap:10px}
+.harrow{width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.harrow:disabled{opacity:.35;cursor:default}
+.hero-mid{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:22px}
+.hero-mid b{display:block;font-size:40px;line-height:1.05;font-weight:700;letter-spacing:-.03em}
+.hero-mid span{display:block;font-size:19px;font-weight:600;opacity:.92;margin-top:6px}
+.hero-mid em{display:block;font-style:normal;font-size:17px;opacity:.85;margin-top:4px}
+.ring{position:relative;width:96px;height:96px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:11}
+.ring .bgc{stroke:rgba(255,255,255,.25)}
+.ring .fg{stroke:#fff;stroke-linecap:round;transition:stroke-dashoffset .35s ease}
+.ring i{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:21px;font-variant-numeric:tabular-nums}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:20px}
+.wday{text-align:center;font-size:13px;font-weight:600;opacity:.9}
+.wday i{display:block;margin:5px auto 0;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.45);font-style:normal;line-height:22px;font-size:13px}
+.wday.full i{background:#fff;color:var(--heroA);border-color:#fff}
+.wday.part i{background:rgba(255,255,255,.3);border-color:transparent}
+.wday.cur{text-decoration:underline;text-underline-offset:4px}
+.grp{font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:20px 4px 10px;display:flex;justify-content:space-between}
+.grp small{font-weight:600;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+.t{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:14px 10px 14px 18px;margin-bottom:12px;box-shadow:0 4px 12px var(--shadow);transition:opacity .15s}
+.t.on{opacity:.72}
+.task{flex:1;display:flex;align-items:center;gap:16px;background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0}
+.box{flex:none;width:34px;height:34px;border-radius:50%;border:2.5px solid var(--mute);display:grid;place-items:center;color:var(--onacc);font-weight:800;font-size:18px;transition:background .15s,border-color .15s}
+.t.on .box{background:var(--acc);border-color:var(--acc)}
+.t.on .box::after{content:"✓"}
+.box.cnt{font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+.t.on .box.cnt{color:var(--onacc);font-size:0}
+.tx{display:block;min-width:0;overflow-wrap:anywhere;font-size:21px;font-weight:600}
+.t.on .tx{color:var(--mute);text-decoration:line-through}
+.dots{display:flex;gap:5px;margin-top:7px}
+.dots u{width:22px;height:7px;border-radius:4px;background:var(--line)}
+.dots u.f{background:var(--acc)}
+.minus{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-size:20px;line-height:1;color:var(--mute)}
+.empty-card{text-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 18px;box-shadow:0 4px 12px var(--shadow)}
+.empty-card b{display:block;font-size:21px;margin:4px 0}
+.empty-card span{color:var(--mute);font-size:17px}
+.sync{display:inline-flex;align-items:center;gap:8px;margin:-8px 0 18px;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:15px;font-weight:600;color:var(--mute)}
+.sync i{width:9px;height:9px;border-radius:50%;background:var(--mute)}
+.sync.ok i{background:var(--acc)}
+.sync.busy i{background:#d4a017}
+.sync.err i{background:var(--warn)}
+.appbar{margin-top:8px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:15px;color:var(--mute)}
+.appbar .ver{font-variant-numeric:tabular-nums}
+textarea{width:100%;min-height:96px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;font:15px/1.4 ui-monospace,Menlo,monospace;color:var(--ink);resize:vertical;word-break:break-all}
+.bk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.bk .chip{padding:13px 8px}
+.hint{color:var(--mute);font-size:16px;margin:0 0 12px}
+.done-banner{background:var(--soft);color:var(--acc);border-radius:18px;padding:14px 18px;font-weight:700;font-size:18px;margin:6px 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;margin-bottom:20px;box-shadow:0 4px 12px var(--shadow)}
+.card h2{font-size:24px;font-weight:700;margin:0 0 14px}
+label.lb{display:block;font-size:15px;font-weight:600;color:var(--mute);margin:14px 0 6px}
+input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:20px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:11px 8px;font-size:16px;font-weight:600;cursor:pointer;text-align:center;color:var(--ink);min-width:0}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.seg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wd{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wd .chip{padding:11px 0}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button{width:46px;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-size:22px;cursor:pointer}
+.stepper b{font-size:22px;min-width:3ch;text-align:center;font-variant-numeric:tabular-nums}
+.stepper span{color:var(--mute);font-size:17px}
+.add{width:100%;margin-top:18px;background:linear-gradient(90deg,var(--heroA),var(--heroB));color:#fff;border:0;border-radius:16px;padding:16px;font-size:20px;font-weight:700;cursor:pointer}
+.row2{display:flex;gap:10px}
+.row2 .ghost{flex:none;margin-top:18px;border:1px solid var(--line);background:var(--bg);border-radius:16px;padding:0 18px;font-weight:600;cursor:pointer}
+#msg{color:var(--mute);font-size:16px;margin:10px 0 0;min-height:1.4em}
+summary{cursor:pointer;font-weight:700;font-size:20px}
+.rt{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.rt:first-child{border-top:0}
+.rt div{min-width:0}
+.rt b{display:block;font-size:19px;font-weight:600;overflow-wrap:anywhere}
+.rt small{color:var(--mute);font-size:15px}
+.rt .acts{display:flex;gap:2px;flex:none}
+.x{background:none;border:0;color:var(--mute);padding:10px 8px;cursor:pointer;font-size:15px;font-weight:600}
+.x.arm{color:var(--warn)}
+.streaks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.st{background:var(--bg);border-radius:16px;padding:14px}
+.st b{display:block;font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.st span{color:var(--mute);font-size:15px}
+@media (min-width:820px){
+  main{max-width:1180px;padding-block:28px 64px}
+  h1.page{font-size:52px}
+  .hero{padding:30px}
+  .cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+}
+@media (max-width:420px){.hero-mid b{font-size:32px}.seg4 .chip{font-size:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('theme-pref');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}})()</script>
+
+</head>
+<body>
+<main>
+  <h1 class="page">Tagesroutine</h1>
+  <p class="sub">Deine festen Gewohnheiten jeden Tag abhaken.</p>
+  <div class="sync" id="sync" role="status"><i></i><span id="syncTxt">Verbinde …</span></div>
+
+  <div class="cols">
+    <div class="col">
+      <section class="hero">
+        <div class="hero-top">
+          <button class="hchip" id="goToday" type="button">Heute</button>
+          <div class="arrows"><button class="harrow" id="prev" type="button" aria-label="Vorheriger Tag">‹</button><button class="harrow" id="next" type="button" aria-label="Nächster Tag">›</button></div>
+        </div>
+        <div class="hero-mid">
+          <div><b id="dt"></b><span id="dd"></span><em id="st"></em></div>
+          <div class="ring">
+            <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bgc" cx="50" cy="50" r="42"/><circle class="fg" id="ringFg" cx="50" cy="50" r="42"/></svg>
+            <i id="ringTxt"></i>
+          </div>
+        </div>
+        <div class="week" id="week"></div>
+      </section>
+      <div id="list"></div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h2>Serie</h2>
+        <div class="streaks">
+          <div class="st"><b id="sNow">0</b><span>Tage am Stück komplett</span></div>
+          <div class="st"><b id="sBest">0</b><span>Beste Serie</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 id="formTitle">Neue Routine</h2>
+        <input type="text" id="title" placeholder="z. B. Zähne putzen" maxlength="60" autocomplete="off">
+        <label class="lb">Tageszeit</label>
+        <div class="seg4" id="slot">
+          <button class="chip" type="button" data-slot="morgen">Morgens</button>
+          <button class="chip" type="button" data-slot="mittag">Mittags</button>
+          <button class="chip" type="button" data-slot="abend">Abends</button>
+          <button class="chip" type="button" data-slot="tag">Ganzer Tag</button>
+        </div>
+        <label class="lb">Wie oft am Tag</label>
+        <div class="stepper"><button type="button" id="cMinus" aria-label="Weniger">−</button><b id="cVal">1</b><span id="cLbl">Mal</span><button type="button" id="cPlus" aria-label="Mehr">＋</button></div>
+        <label class="lb">An welchen Tagen</label>
+        <div class="wd" id="wd"></div>
+        <div class="row2"><button class="add" id="add" type="button">＋ Hinzufügen</button><button class="ghost" id="cancel" type="button" hidden>Abbrechen</button></div>
+        <p id="msg"></p>
+      </div>
+
+
+      <div class="card">
+        <h2>Daten übertragen</h2>
+        <p class="hint">Um deine Routinen auf ein anderes Gerät mitzunehmen: hier den Code kopieren, auf dem anderen Gerät einfügen und „Übernehmen“ tippen.</p>
+        <textarea id="bkText" placeholder="Code hier einfügen …" spellcheck="false" autocomplete="off"></textarea>
+        <div class="bk"><button class="chip" type="button" id="bkCopy">Code kopieren</button><button class="chip" type="button" id="bkLoad">Übernehmen</button></div>
+        <p id="bkMsg" class="hint" style="margin:10px 0 0;min-height:1.4em"></p>
+      </div>
+      <div class="card">
+        <details id="det"><summary id="rsum">Alle Routinen</summary><div id="rout"></div></details>
+      </div>
+    </div>
+  </div>
+  <footer class="appbar">
+    <span id="copy">© 2026 Benedikt Diel</span>
+    <span class="ver" id="ver">Version 1.0.0</span>
+  </footer>
+</main>
+
+<script>
+const APP_VERSION = "1.0.0";
+const APP_AUTHOR = "Benedikt Diel";
+const APP_START_YEAR = 2026;
+(function(){const y=new Date().getFullYear();
+  document.getElementById("copy").textContent="© "+(y>APP_START_YEAR?APP_START_YEAR+"–"+y:APP_START_YEAR)+" "+APP_AUTHOR;
+  document.getElementById("ver").textContent="Version "+APP_VERSION;})();
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const addD=(k,n)=>{const d=parse(k);d.setDate(d.getDate()+n);return key(d)};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const WD=['Mo','Di','Mi','Do','Fr','Sa','So']; // index 0 = Montag
+const wdIdx=k=>(parse(k).getDay()+6)%7;
+const SLOTS=[['morgen','Morgens'],['mittag','Mittags'],['abend','Abends'],['tag','Über den Tag']];
+const LS='routine-app-v1';
+const uid=()=>Math.random().toString(36).slice(2,9);
+const ALL=[0,1,2,3,4,5,6];
+
+const defaults=()=>[
+  {id:uid(),name:'Bett machen',slot:'morgen',count:1,days:ALL},
+  {id:uid(),name:'Duschen',slot:'morgen',count:1,days:ALL},
+  {id:uid(),name:'Zähne putzen',slot:'tag',count:2,days:ALL},
+  {id:uid(),name:'Glas Wasser trinken',slot:'tag',count:6,days:ALL},
+  {id:uid(),name:'Tasche für morgen packen',slot:'abend',count:1,days:[0,1,2,3,4]},
+  {id:uid(),name:'Gesicht waschen',slot:'abend',count:1,days:ALL},
+];
+
+let S;
+try{S=JSON.parse(localStorage.getItem(LS))}catch(e){}
+if(!S||!Array.isArray(S.r)){S={r:defaults(),h:{},since:key(new Date()),u:0}}
+if(typeof S.u!=='number')S.u=0;
+const saveLocal=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
+
+/* ---- Geräte-Sync: ein privates Dokument pro Person in der Artefakt-Datenbank ---- */
+let syncRef=null,writing=false,queued=false,timer=null;
+function syncState(cls,txt){const el=document.getElementById('sync');el.className='sync '+cls;document.getElementById('syncTxt').textContent=txt}
+const stamp=()=>{const d=new Date();return 'Synchronisiert · '+pad(d.getHours())+':'+pad(d.getMinutes())};
+function pushSoon(){if(!syncRef)return;clearTimeout(timer);syncState('busy','Speichert …');timer=setTimeout(push,700)}
+async function push(){timer=null;
+  if(!syncRef)return;
+  if(writing){queued=true;return}
+  writing=true;
+  try{await syncRef.set({r:S.r,h:S.h,since:S.since,u:S.u});syncState('ok',stamp())}
+  catch(e){
+    if(e&&e.code==='unavailable'){setTimeout(pushSoon,1500+Math.random()*1500)}
+    else if(e&&e.code==='quota_exceeded'){syncState('err','Speicher voll – nur lokal gespeichert')}
+    else{syncState('err','Sync aus – nur auf diesem Gerät')}
+  }
+  writing=false;
+  if(queued){queued=false;push()}
+}
+const save=()=>{S.u=Date.now();saveLocal();pushSoon()};
+
+(async()=>{
+  const off=()=>syncState('','Auf diesem Gerät gespeichert');
+  try{
+    if(!window.claude||!window.claude.use)return off();
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return off();
+    const id=await user.id();
+    if(!id)return off();
+    const ref=db.doc('data/users/'+id+'/routine');
+    let first=true;
+    ref.onSnapshot(snap=>{
+      if(snap.metadata.hasPendingWrites)return;
+      const r=snap.exists?snap.data():null;
+      if(first){
+        first=false;syncRef=ref;
+        if(!r||!Array.isArray(r.r)){push();return}
+        if((r.u||0)<S.u){push();return}
+      }
+      if(r&&Array.isArray(r.r)&&(r.u||0)>S.u){
+        S={r:JSON.parse(JSON.stringify(r.r)),h:JSON.parse(JSON.stringify(r.h||{})),since:r.since||S.since,u:r.u};
+        if(form.edit&&!S.r.some(x=>x.id===form.edit)){resetForm()}
+        saveLocal();render();
+      }
+      if(!writing&&!timer)syncState('ok',stamp());
+    },()=>{syncRef=null;syncState('err','Sync unterbrochen – lade neu zum Verbinden')});
+  }catch(e){off()}
+})();
+
+const today=()=>key(new Date());
+let cur=today();
+let form={slot:'morgen',count:1,days:[...ALL],edit:null};
+
+const due=k=>S.r.filter(r=>r.days.includes(wdIdx(k)));
+const got=(k,id)=>(S.h[k]&&S.h[k][id])||0;
+function prog(k){let d=0,t=0;for(const r of due(k)){t+=r.count;d+=Math.min(got(k,r.id),r.count)}return{d,t}}
+const full=k=>{const p=prog(k);return p.t>0&&p.d>=p.t};
+
+function streaks(){
+  let now=0,k=today();
+  if(!full(k))k=addD(k,-1);
+  while(k>=S.since&&full(k)){now++;k=addD(k,-1)}
+  let best=0,run=0;k=S.since;const end=today();
+  while(k<=end){if(full(k)){run++;best=Math.max(best,run)}else run=0;k=addD(k,1)}
+  return{now,best:Math.max(best,now)};
+}
+
+function setCount(id,n){
+  S.h[cur]=S.h[cur]||{};
+  if(n<=0)delete S.h[cur][id];else S.h[cur][id]=n;
+  if(!Object.keys(S.h[cur]).length)delete S.h[cur];
+  save();render();
+}
+
+function render(){
+  const d=parse(cur),t=today();
+  const rel=cur===t?'Heute':cur===addD(t,-1)?'Gestern':d.toLocaleDateString('de-DE',{weekday:'long'});
+  $('#dt').textContent=rel;
+  $('#dd').textContent=d.toLocaleDateString('de-DE',{weekday:cur===t||cur===addD(t,-1)?'long':undefined,day:'numeric',month:'long'});
+  const p=prog(cur),pct=p.t?Math.round(p.d/p.t*100):0;
+  $('#st').textContent=p.t?(p.d>=p.t?'Alles erledigt':`${p.t-p.d} Schritte offen`):'Keine Routinen an diesem Tag';
+  const C=2*Math.PI*42;$('#ringFg').style.strokeDasharray=C;$('#ringFg').style.strokeDashoffset=C*(1-pct/100);
+  $('#ringTxt').textContent=pct+'%';
+  $('#goToday').classList.toggle('on',cur===t);
+  $('#next').disabled=cur>=t;
+
+  // Wochenleiste Mo–So der aktuellen Woche
+  const mon=addD(cur,-wdIdx(cur));let wh='';
+  for(let i=0;i<7;i++){const k=addD(mon,i),q=prog(k);
+    const cls=k>t?'':(q.t&&q.d>=q.t?'full':q.d>0?'part':'');
+    wh+=`<div class="wday ${cls} ${k===cur?'cur':''}">${WD[i]}<i>${parse(k).getDate()}</i></div>`}
+  $('#week').innerHTML=wh;
+
+  const list=due(cur);let h='';
+  if(!list.length){h=`<div class="empty-card"><b>Heute nichts geplant</b><span>Lege rechts eine Routine an oder wähle mehr Wochentage.</span></div>`}
+  else{
+    if(p.d>=p.t)h+=`<div class="done-banner">Alle Routinen für ${rel.toLowerCase()==='heute'?'heute':'diesen Tag'} geschafft.</div>`;
+    for(const [s,lab] of SLOTS){
+      const items=list.filter(r=>r.slot===s);if(!items.length)continue;
+      const dn=items.filter(r=>got(cur,r.id)>=r.count).length;
+      h+=`<div class="grp">${lab}<small>${dn}/${items.length}</small></div>`;
+      for(const r of items){
+        const n=Math.min(got(cur,r.id),r.count),on=n>=r.count,multi=r.count>1;
+        const dots=multi?`<span class="dots">${Array.from({length:r.count},(_,i)=>`<u class="${i<n?'f':''}"></u>`).join('')}</span>`:'';
+        h+=`<div class="t ${on?'on':''}">
+          <button class="task" type="button" data-tap="${r.id}" aria-label="${esc(r.name)} ${multi?n+' von '+r.count:on?'erledigt':'offen'}">
+            <span class="box ${multi?'cnt':''}">${multi&&!on?n+'/'+r.count:''}</span>
+            <span style="min-width:0"><span class="tx">${esc(r.name)}${multi?` <span style="color:var(--mute);font-weight:400">${r.count}×</span>`:''}</span>${dots}</span>
+          </button>
+          ${multi&&n>0?`<button class="minus" type="button" data-minus="${r.id}" aria-label="Einen zurücknehmen">−</button>`:''}
+        </div>`}
+    }
+  }
+  $('#list').innerHTML=h;
+
+  const s=streaks();$('#sNow').textContent=s.now;$('#sBest').textContent=s.best;
+  renderForm();renderRout();
+}
+
+function renderForm(){
+  document.querySelectorAll('#slot .chip').forEach(b=>b.classList.toggle('on',b.dataset.slot===form.slot));
+  $('#cVal').textContent=form.count;$('#cLbl').textContent=form.count===1?'Mal':'Mal';
+  $('#wd').innerHTML=WD.map((w,i)=>`<button class="chip ${form.days.includes(i)?'on':''}" type="button" data-wd="${i}">${w}</button>`).join('');
+  $('#formTitle').textContent=form.edit?'Routine bearbeiten':'Neue Routine';
+  $('#add').textContent=form.edit?'Speichern':'＋ Hinzufügen';
+  $('#cancel').hidden=!form.edit;
+}
+
+let armed=null;
+function daysTxt(d){if(d.length===7)return'täglich';const s=[...d].sort().join();if(s==='0,1,2,3,4')return'Mo–Fr';if(s==='5,6')return'Wochenende';return [...d].sort().map(i=>WD[i]).join(', ')}
+function renderRout(){
+  $('#rsum').textContent=`Alle Routinen (${S.r.length})`;
+  const lab=Object.fromEntries(SLOTS);
+  $('#rout').innerHTML=S.r.length?SLOTS.flatMap(([s])=>S.r.filter(r=>r.slot===s)).map(r=>`<div class="rt"><div><b>${esc(r.name)}</b><small>${lab[r.slot]} · ${r.count}× · ${daysTxt(r.days)}</small></div>
+    <div class="acts"><button class="x" type="button" data-edit="${r.id}">Ändern</button><button class="x ${armed===r.id?'arm':''}" type="button" data-del="${r.id}">${armed===r.id?'Wirklich löschen?':'Löschen'}</button></div></div>`).join(''):'<p style="color:var(--mute);margin:10px 0 0">Noch keine Routinen.</p>';
+}
+
+function resetForm(){form={slot:'morgen',count:1,days:[...ALL],edit:null};$('#title').value=''}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.tap){const r=S.r.find(x=>x.id===b.dataset.tap);const n=got(cur,r.id);
+    setCount(r.id,r.count===1?(n?0:1):(n>=r.count?0:n+1));return}
+  if(b.dataset.minus){setCount(b.dataset.minus,got(cur,b.dataset.minus)-1);return}
+  if(b.dataset.slot){form.slot=b.dataset.slot;renderForm();return}
+  if(b.dataset.wd!==undefined){const i=+b.dataset.wd;form.days=form.days.includes(i)?form.days.filter(x=>x!==i):[...form.days,i];renderForm();return}
+  if(b.dataset.edit){const r=S.r.find(x=>x.id===b.dataset.edit);form={slot:r.slot,count:r.count,days:[...r.days],edit:r.id};$('#title').value=r.name;renderForm();$('#title').focus();$('#msg').textContent='';return}
+  if(b.dataset.del){const id=b.dataset.del;if(armed===id){S.r=S.r.filter(x=>x.id!==id);armed=null;if(form.edit===id)resetForm();save();render();$('#msg').textContent='Routine gelöscht.'}else{armed=id;renderRout();setTimeout(()=>{if(armed===id){armed=null;renderRout()}},4000)}return}
+});
+$('#cMinus').onclick=()=>{form.count=Math.max(1,form.count-1);renderForm()};
+$('#cPlus').onclick=()=>{form.count=Math.min(12,form.count+1);renderForm()};
+$('#cancel').onclick=()=>{resetForm();renderForm();$('#msg').textContent=''};
+$('#add').onclick=()=>{
+  const name=$('#title').value.trim();
+  if(!name){$('#msg').textContent='Gib der Routine einen Namen.';$('#title').focus();return}
+  if(!form.days.length){$('#msg').textContent='Wähle mindestens einen Wochentag.';return}
+  if(form.edit){Object.assign(S.r.find(x=>x.id===form.edit),{name,slot:form.slot,count:form.count,days:[...form.days].sort()});$('#msg').textContent='Gespeichert.'}
+  else{S.r.push({id:uid(),name,slot:form.slot,count:form.count,days:[...form.days].sort()});$('#msg').textContent=`„${name}“ hinzugefügt.`}
+  resetForm();save();render();
+};
+$('#title').addEventListener('keydown',e=>{if(e.key==='Enter')$('#add').click()});
+$('#prev').onclick=()=>{cur=addD(cur,-1);render()};
+$('#next').onclick=()=>{if(cur<today()){cur=addD(cur,1);render()}};
+$('#goToday').onclick=()=>{cur=today();render()};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+/* ---- Übertragen per Code (für die eigenständige App ohne Claude-Sync) ---- */
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec=t=>JSON.parse(decodeURIComponent(escape(atob(t.replace(/\s+/g,'')))));
+let bkArmed=false;
+$('#bkCopy').onclick=async()=>{
+  const code='TR1:'+enc({r:S.r,h:S.h,since:S.since,u:S.u});
+  $('#bkText').value=code;
+  try{await navigator.clipboard.writeText(code);$('#bkMsg').textContent='Code kopiert. Auf dem anderen Gerät einfügen.'}
+  catch(e){$('#bkText').select();$('#bkMsg').textContent='Code markiert. Jetzt kopieren.'}
+};
+$('#bkLoad').onclick=()=>{
+  let t=$('#bkText').value.trim(),d;
+  if(!t){$('#bkMsg').textContent='Füge zuerst einen Code ein.';return}
+  try{if(t.startsWith('TR1:'))t=t.slice(4);d=dec(t);if(!Array.isArray(d.r)||typeof d.h!=='object')throw 0}
+  catch(e){$('#bkMsg').textContent='Der Code ist unvollständig oder falsch. Kopiere ihn noch einmal.';return}
+  if(!bkArmed){bkArmed=true;$('#bkLoad').textContent='Sicher? Ersetzt alles';$('#bkMsg').textContent=`${d.r.length} Routinen gefunden. Nochmal tippen zum Übernehmen.`;setTimeout(()=>{bkArmed=false;$('#bkLoad').textContent='Übernehmen'},5000);return}
+  bkArmed=false;$('#bkLoad').textContent='Übernehmen';
+  S={r:d.r,h:d.h||{},since:d.since||key(new Date()),u:0};resetForm();save();render();
+  $('#bkText').value='';$('#bkMsg').textContent='Übernommen.';
+};
+if("serviceWorker" in navigator && location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+render();
+</script>
+</body>
+</html>

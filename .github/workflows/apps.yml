@@ -1,0 +1,97 @@
+name: Apps bauen (Android + iPhone)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      code: ${{ steps.ver.outputs.code }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version auslesen (APP_VERSION in web/index.html)
+        id: ver
+        run: |
+          v=$(grep -oP 'APP_VERSION = "\K[^"]+' web/index.html)
+          IFS=. read -r a b c <<< "$v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "code=$((a*10000 + b*100 + ${c:-0}))" >> "$GITHUB_OUTPUT"
+
+  apk:
+    needs: version
+    # ubuntu-24.04 bringt das Android-SDK vorinstalliert mit (ANDROID_HOME)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: APK bauen
+        run: gradle -p android assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: android/app/build/outputs/apk/release/Tagesroutine-${{ needs.version.outputs.version }}.apk
+
+  ipa:
+    needs: version
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: XcodeGen installieren
+        run: brew install xcodegen
+      - name: Xcode-Projekt erzeugen
+        run: cd ios && xcodegen generate
+      - name: iPhone-App bauen (unsigniert)
+        run: |
+          cd ios
+          xcodebuild -project Tagesroutine.xcodeproj -target Tagesroutine \
+            -sdk iphoneos -configuration Release \
+            SYMROOT="$PWD/build" \
+            MARKETING_VERSION=${{ needs.version.outputs.version }} \
+            CURRENT_PROJECT_VERSION=${{ needs.version.outputs.code }} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+      - name: IPA verpacken
+        run: |
+          cd ios
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/Tagesroutine.app Payload/
+          zip -qr "Tagesroutine-${{ needs.version.outputs.version }}.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: ios/Tagesroutine-${{ needs.version.outputs.version }}.ipa
+
+  release:
+    needs: [version, apk, ipa]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: HTML-Datei beilegen
+        run: cp web/index.html "out/Tagesroutine-${{ needs.version.outputs.version }}.html"
+      - name: Release mit APK und IPA veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Tagesroutine ${{ needs.version.outputs.version }}
+          files: |
+            out/Tagesroutine-${{ needs.version.outputs.version }}.apk
+            out/Tagesroutine-${{ needs.version.outputs.version }}.ipa
+            out/Tagesroutine-${{ needs.version.outputs.version }}.html
+          make_latest: true

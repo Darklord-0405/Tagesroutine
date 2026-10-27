@@ -1,0 +1,9 @@
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.DS_Store
+ios/build/
+ios/Payload/
+ios/*.xcodeproj/
+ios/*.ipa
